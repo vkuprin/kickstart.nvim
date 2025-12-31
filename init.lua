@@ -93,6 +93,9 @@ vim.g.maplocalleader = ' '
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = false
 
+-- Set font (for GUI versions of Neovim like Neovide or VimR)
+vim.opt.guifont = 'Menlo:h12'
+
 -- [[ Setting options ]]
 -- See `:help vim.o`
 -- NOTE: You can change these options as you wish!
@@ -357,6 +360,40 @@ require('lazy').setup({
   -- you do for a plugin at the top level, you can do for a dependency.
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
+
+  { -- gruber-darker theme
+    'blazkowolf/gruber-darker.nvim',
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.cmd.colorscheme 'gruber-darker'
+      
+      -- Override yellow colors (customize hex values as desired)
+      vim.api.nvim_set_hl(0, 'String', { fg = '#d4d4d4' })  -- Change yellow strings to light gray
+      vim.api.nvim_set_hl(0, 'Number', { fg = '#d4d4d4' })  -- Change yellow numbers
+      vim.api.nvim_set_hl(0, 'Constant', { fg = '#d4d4d4' })  -- Change constants
+      
+      -- Fix statusline mode indicator (N/I/V) contrast
+      vim.api.nvim_set_hl(0, 'MiniStatuslineModeNormal', { fg = '#000000', bg = '#ffdd33', bold = true })
+      vim.api.nvim_set_hl(0, 'MiniStatuslineModeInsert', { fg = '#000000', bg = '#95e454', bold = true })
+      vim.api.nvim_set_hl(0, 'MiniStatuslineModeVisual', { fg = '#000000', bg = '#8ac6f2', bold = true })
+      vim.api.nvim_set_hl(0, 'MiniStatuslineModeReplace', { fg = '#000000', bg = '#e5786d', bold = true })
+      vim.api.nvim_set_hl(0, 'MiniStatuslineModeCommand', { fg = '#000000', bg = '#cae682', bold = true })
+    end,
+  },
+
+  { -- ring0dark theme (minimalistic, inspired by gruber-darker)
+    'ring0-rootkit/ring0-dark.nvim',
+    lazy = true,
+    priority = 1000,
+  },
+
+  { -- Catppuccin with multiple flavors
+    'catppuccin/nvim',
+    name = 'catppuccin',
+    lazy = true,
+    priority = 1000,
+  },
 
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
@@ -869,7 +906,7 @@ require('lazy').setup({
       -- the rust implementation via `'prefer_rust_with_warning'`
       --
       -- See :h blink-cmp-config-fuzzy for more information
-      fuzzy = { implementation = 'lua' },
+      fuzzy = { implementation = 'rust' },
 
       -- Shows a signature help window while you type arguments for a function
       signature = { enabled = true },
@@ -891,10 +928,9 @@ require('lazy').setup({
         },
       }
 
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      -- NOTE: Don't auto-apply tokyonight here, otherwise it overrides gruber-darker.
+      -- Switch manually any time with:
+      --   :colorscheme tokyonight-night
     end,
   },
 
