@@ -190,10 +190,16 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
--- Augment AI keymaps
-vim.keymap.set('n', '<leader>ac', ':Augment chat<CR>', { desc = '[A]ugment [C]hat' })
-vim.keymap.set('v', '<leader>ac', ':Augment chat<CR>', { desc = '[A]ugment [C]hat' })
-vim.keymap.set('n', '<leader>at', ':Augment chat-toggle<CR>', { desc = '[A]ugment [T]oggle chat' })
+-- Augment AI keymaps (completions only)
+vim.keymap.set('n', '<leader>as', ':Augment status<CR>', { desc = '[A]ugment [S]tatus' })
+
+-- CodeCompanion AI keymaps (chat & editing)
+vim.keymap.set('n', '<leader>cc', ':CodeCompanionChat Toggle<CR>', { desc = '[C]ode[C]ompanion Chat' })
+vim.keymap.set('v', '<leader>cc', ':CodeCompanionChat Toggle<CR>', { desc = '[C]ode[C]ompanion Chat' })
+vim.keymap.set('n', '<leader>ca', ':CodeCompanionActions<CR>', { desc = '[C]ode[C]ompanion [A]ctions' })
+vim.keymap.set('v', '<leader>ca', ':CodeCompanionActions<CR>', { desc = '[C]ode[C]ompanion [A]ctions' })
+vim.keymap.set('n', '<leader>ci', ':CodeCompanion<CR>', { desc = '[C]ode[C]ompanion [I]nline' })
+vim.keymap.set('v', '<leader>ci', ':CodeCompanion<CR>', { desc = '[C]ode[C]ompanion [I]nline' })
 
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
@@ -740,18 +746,46 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
-        -- rust_analyzer = {},
-        -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
+        -- TypeScript/JavaScript LSP
+        ts_ls = {
+          settings = {
+            typescript = {
+              inlayHints = {
+                includeInlayParameterNameHints = 'all',
+                includeInlayFunctionParameterTypeHints = true,
+              },
+            },
+          },
+        },
+
+        -- ESLint for linting
+        eslint = {},
+
+        -- CSS/SCSS/Less
+        cssls = {},
+        tailwindcss = {}, -- For Tailwind/NativeWind
+
+        -- Mobile development
+        -- sourcekit requires Xcode, configured separately if needed
+        kotlin_language_server = {}, -- Kotlin (Android)
+
+        -- Systems programming
+        clangd = {}, -- C/C++
+        jdtls = {}, -- Java
+
+        -- Shell scripting
+        bashls = {}, -- Bash/Shell
+
+        -- Docker
+        dockerls = {},
+        docker_compose_language_service = {},
+
+        -- JSON/YAML
+        jsonls = {},
+        yamlls = {},
+
+        -- Markdown
+        marksman = {},
 
         lua_ls = {
           -- cmd = { ... },
@@ -837,11 +871,24 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        -- TypeScript/JavaScript/React
+        javascript = { 'prettier' },
+        javascriptreact = { 'prettier' },
+        typescript = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        json = { 'prettier' },
+        css = { 'prettier' },
+        scss = { 'prettier' },
+        html = { 'prettier' },
+        markdown = { 'prettier' },
+        yaml = { 'prettier' },
+        -- Swift
+        swift = { 'swiftformat' },
+        -- Kotlin (uses ktlint)
+        kotlin = { 'ktlint' },
+        -- Shell
+        sh = { 'shfmt' },
+        bash = { 'shfmt' },
       },
     },
   },
@@ -976,9 +1023,39 @@ require('lazy').setup({
     opts = {},
   },
 
-  { -- AI-powered code completions and chat
+  { -- AI-powered code completions
     'augmentcode/augment.vim',
     lazy = false,
+  },
+
+  { -- AI chat and inline editing
+    'olimorris/codecompanion.nvim',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-treesitter/nvim-treesitter',
+      'nvim-telescope/telescope.nvim',
+    },
+    config = function()
+      require('codecompanion').setup({
+        adapters = {
+          anthropic = function()
+            return require('codecompanion.adapters').extend('anthropic', {
+              env = {
+                api_key = 'ANTHROPIC_API_KEY',
+              },
+            })
+          end,
+        },
+        strategies = {
+          chat = {
+            adapter = 'anthropic',
+          },
+          inline = {
+            adapter = 'anthropic',
+          },
+        },
+      })
+    end,
   },
 
   { -- File explorer tree
