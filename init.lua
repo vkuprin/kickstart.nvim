@@ -90,8 +90,11 @@ P.S. You can delete this when you're done too. It's your config now! :)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- Configure Augment workspace folder (must be set before plugin loads)
+vim.g.augment_workspace_folders = { vim.fn.getcwd() }
+
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- Set font (for GUI versions of Neovim like Neovide or VimR)
 vim.opt.guifont = 'Menlo:h12'
@@ -123,6 +126,14 @@ end)
 
 -- Enable break indent
 vim.o.breakindent = true
+
+-- Disable line wrapping
+vim.o.wrap = false
+
+-- Scrolling (so that wrapping relies on horizontal scrolling)
+vim.o.sidescroll = 1
+
+vim.o.sidescrolloff = 8
 
 -- Save undo history
 vim.o.undofile = true
@@ -179,6 +190,12 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- Augment AI keymaps
+vim.keymap.set('n', '<leader>ac', ':Augment chat<CR>', { desc = '[A]ugment [C]hat' })
+vim.keymap.set('v', '<leader>ac', ':Augment chat<CR>', { desc = '[A]ugment [C]hat' })
+vim.keymap.set('n', '<leader>at', ':Augment chat-toggle<CR>', { desc = '[A]ugment [T]oggle chat' })
+
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -210,6 +227,13 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
+
+-- Treat .tutor files as markdown
+vim.filetype.add {
+  extension = {
+    tutor = 'markdown',
+  },
+}
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -367,12 +391,12 @@ require('lazy').setup({
     priority = 1000,
     config = function()
       vim.cmd.colorscheme 'gruber-darker'
-      
+
       -- Override yellow colors (customize hex values as desired)
-      vim.api.nvim_set_hl(0, 'String', { fg = '#d4d4d4' })  -- Change yellow strings to light gray
-      vim.api.nvim_set_hl(0, 'Number', { fg = '#d4d4d4' })  -- Change yellow numbers
-      vim.api.nvim_set_hl(0, 'Constant', { fg = '#d4d4d4' })  -- Change constants
-      
+      vim.api.nvim_set_hl(0, 'String', { fg = '#d4d4d4' }) -- Change yellow strings to light gray
+      vim.api.nvim_set_hl(0, 'Number', { fg = '#d4d4d4' }) -- Change yellow numbers
+      vim.api.nvim_set_hl(0, 'Constant', { fg = '#d4d4d4' }) -- Change constants
+
       -- Fix statusline mode indicator (N/I/V) contrast
       vim.api.nvim_set_hl(0, 'MiniStatuslineModeNormal', { fg = '#000000', bg = '#ffdd33', bold = true })
       vim.api.nvim_set_hl(0, 'MiniStatuslineModeInsert', { fg = '#000000', bg = '#95e454', bold = true })
@@ -469,7 +493,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-      vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
+      vim.keymap.set('n', '<leader>sD', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
@@ -496,6 +520,14 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- Search directories only
+      vim.keymap.set('n', '<leader>sd', function()
+        builtin.find_files {
+          find_command = { 'fd', '--type', 'd', '--hidden', '--exclude', '.git' },
+          prompt_title = 'Find Directories',
+        }
+      end, { desc = '[S]earch [D]irectories' })
     end,
   },
 
@@ -752,7 +784,7 @@ require('lazy').setup({
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
+        -- stylua installed via homebrew instead
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -937,6 +969,43 @@ require('lazy').setup({
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
+  { -- Render markdown with treesitter
+    'MeanderingProgrammer/render-markdown.nvim',
+    ft = 'markdown',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+    opts = {},
+  },
+
+  { -- AI-powered code completions and chat
+    'augmentcode/augment.vim',
+    lazy = false,
+  },
+
+  { -- File explorer tree
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    cmd = 'Neotree',
+    keys = {
+      { '<leader>e', ':Neotree toggle<CR>', desc = 'File [E]xplorer' },
+    },
+    opts = {
+      filesystem = {
+        follow_current_file = { enabled = true },
+        hijack_netrw_behavior = 'open_current',
+        filtered_items = {
+          visible = true, -- Show hidden files by default
+          hide_dotfiles = false,
+          hide_gitignored = false,
+        },
+      },
+    },
+  },
+
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
     config = function()
@@ -954,6 +1023,9 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
+
+      -- File explorer
+      require('mini.files').setup()
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
