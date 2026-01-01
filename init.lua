@@ -201,7 +201,6 @@ vim.keymap.set('v', '<leader>ca', ':CodeCompanionActions<CR>', { desc = '[C]ode[
 vim.keymap.set('n', '<leader>ci', ':CodeCompanion<CR>', { desc = '[C]ode[C]ompanion [I]nline' })
 vim.keymap.set('v', '<leader>ci', ':CodeCompanion<CR>', { desc = '[C]ode[C]ompanion [I]nline' })
 
-
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -235,11 +234,11 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 --  See `:help lua-guide-autocommands`
 
 -- Treat .tutor files as markdown
-vim.filetype.add {
-  extension = {
-    tutor = 'markdown',
-  },
-}
+-- vim.filetype.add {
+--  extension = {
+--    tutor = 'markdown',
+--  },
+-- }
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -1036,7 +1035,7 @@ require('lazy').setup({
       'nvim-telescope/telescope.nvim',
     },
     config = function()
-      require('codecompanion').setup({
+      require('codecompanion').setup {
         adapters = {
           anthropic = function()
             return require('codecompanion.adapters').extend('anthropic', {
@@ -1054,7 +1053,58 @@ require('lazy').setup({
             adapter = 'anthropic',
           },
         },
-      })
+      }
+    end,
+  },
+
+  { -- Buffer/tab line at the top
+    'akinsho/bufferline.nvim',
+    dependencies = 'nvim-tree/nvim-web-devicons',
+    config = function()
+      require('bufferline').setup {
+        options = {
+          mode = 'buffers', -- set to "tabs" to only show tabpages instead
+          themable = true,
+          numbers = 'none',
+          close_command = 'bdelete! %d',
+          right_mouse_command = 'bdelete! %d',
+          left_mouse_command = 'buffer %d',
+          middle_mouse_command = nil,
+          indicator = {
+            style = 'icon',
+            icon = '▎',
+          },
+          buffer_close_icon = '󰅖',
+          modified_icon = '●',
+          close_icon = '',
+          left_trunc_marker = '',
+          right_trunc_marker = '',
+          diagnostics = 'nvim_lsp',
+          diagnostics_indicator = function(count, level)
+            local icon = level:match('error') and ' ' or ' '
+            return ' ' .. icon .. count
+          end,
+          offsets = {
+            {
+              filetype = 'neo-tree',
+              text = 'File Explorer',
+              text_align = 'center',
+              separator = true,
+            },
+          },
+          show_buffer_icons = true,
+          show_buffer_close_icons = true,
+          show_close_icon = true,
+          show_tab_indicators = true,
+          separator_style = 'thin',
+          always_show_bufferline = true,
+        },
+      }
+      -- Keymaps for navigating buffers
+      vim.keymap.set('n', '<Tab>', ':BufferLineCycleNext<CR>', { desc = 'Next buffer', silent = true })
+      vim.keymap.set('n', '<S-Tab>', ':BufferLineCyclePrev<CR>', { desc = 'Previous buffer', silent = true })
+      vim.keymap.set('n', '<leader>bd', ':bdelete<CR>', { desc = '[B]uffer [D]elete', silent = true })
+      vim.keymap.set('n', '<leader>bp', ':BufferLinePick<CR>', { desc = '[B]uffer [P]ick', silent = true })
     end,
   },
 
@@ -1081,6 +1131,63 @@ require('lazy').setup({
         },
       },
     },
+  },
+
+  { -- Auto-close brackets, quotes, etc.
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    config = function()
+      require('nvim-autopairs').setup {
+        check_ts = true, -- Enable treesitter integration
+        ts_config = {
+          lua = { 'string' }, -- Don't add pairs in lua string treesitter nodes
+          javascript = { 'template_string' },
+          java = false, -- Don't check treesitter on java
+        },
+      }
+      -- Integrate with cmp (blink.cmp)
+      local cmp_autopairs = require 'nvim-autopairs.completion.cmp'
+      local cmp = require 'cmp'
+      cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+    end,
+  },
+
+  { -- Smart commenting with keybinds
+    'numToStr/Comment.nvim',
+    event = { 'BufReadPre', 'BufNewFile' },
+    config = function()
+      require('Comment').setup {
+        -- Use treesitter to automatically calculate commentstring
+        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
+      }
+    end,
+    dependencies = {
+      'JoosepAlviste/nvim-ts-context-commentstring', -- Better commenting for JSX/TSX
+    },
+  },
+
+  { -- Highlight color codes with their actual colors
+    'NvChad/nvim-colorizer.lua',
+    event = { 'BufReadPre', 'BufNewFile' },
+    config = function()
+      require('colorizer').setup {
+        filetypes = { '*' }, -- Enable for all filetypes
+        user_default_options = {
+          RGB = true, -- #RGB hex codes
+          RRGGBB = true, -- #RRGGBB hex codes
+          names = true, -- "Name" codes like Blue, red
+          RRGGBBAA = true, -- #RRGGBBAA hex codes
+          rgb_fn = true, -- CSS rgb() and rgba() functions
+          hsl_fn = true, -- CSS hsl() and hsla() functions
+          css = true, -- Enable all CSS features: rgb_fn, hsl_fn, names, RGB, RRGGBB
+          css_fn = true, -- Enable all CSS *functions*: rgb_fn, hsl_fn
+          mode = 'background', -- Set the display mode: 'foreground', 'background', 'virtualtext'
+          tailwind = true, -- Enable tailwind colors
+          sass = { enable = true, parsers = { 'css' } }, -- Enable sass colors
+          virtualtext = '■',
+        },
+      }
+    end,
   },
 
   { -- Collection of various small independent plugins/modules
