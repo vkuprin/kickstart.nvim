@@ -112,6 +112,8 @@ vim.o.number = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
+-- Set mouse scrolling to 1 line per tick (default is 3) for slower, smoother scrolling
+vim.o.mousescroll = 'ver:1,hor:1'
 
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
@@ -182,6 +184,13 @@ vim.o.confirm = true
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
+
+-- Command aliases for common typos (quit only)
+vim.cmd [[
+  command! -bang Q q<bang>
+  command! -bang Qa qa<bang>
+  command! -bang QA qa<bang>
+]]
 
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
@@ -1022,6 +1031,50 @@ require('lazy').setup({
     opts = {},
   },
 
+  { -- Automatic session management
+    'folke/persistence.nvim',
+    event = 'BufReadPre', -- Only start saving when you open a file
+    opts = {},
+    keys = {
+      { '<leader>qs', function() require('persistence').load() end, desc = 'Restore Session' },
+      { '<leader>ql', function() require('persistence').load({ last = true }) end, desc = 'Restore Last Session' },
+      { '<leader>qd', function() require('persistence').stop() end, desc = "Don't Save Current Session" },
+    },
+    config = function(_, opts)
+      require('persistence').setup(opts)
+
+      local function close_all_neotree_buffers()
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          local ok_ft, ft = pcall(vim.api.nvim_get_option_value, 'filetype', { buf = buf })
+          if ok_ft and ft == 'neo-tree' then
+            pcall(vim.api.nvim_buf_delete, buf, { force = true })
+          end
+        end
+      end
+
+      -- Close Neo-tree before saving the session so it's not written into the session file
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'PersistenceSavePre',
+        callback = function()
+          close_all_neotree_buffers()
+        end,
+      })
+
+      -- Automatically open Neo-tree after restoring a session
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'PersistenceLoadPost',
+        callback = function()
+          -- Defer to let the session fully load
+          vim.defer_fn(function()
+            close_all_neotree_buffers()
+            -- Finally open a fresh Neo-tree
+            vim.cmd 'Neotree show'
+          end, 100)
+        end,
+      })
+    end,
+  },
+
   { -- AI-powered code completions
     'augmentcode/augment.vim',
     lazy = false,
@@ -1145,10 +1198,6 @@ require('lazy').setup({
           java = false, -- Don't check treesitter on java
         },
       }
-      -- Integrate with cmp (blink.cmp)
-      local cmp_autopairs = require 'nvim-autopairs.completion.cmp'
-      local cmp = require 'cmp'
-      cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
     end,
   },
 
