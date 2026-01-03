@@ -129,6 +129,13 @@ end)
 -- Enable break indent
 vim.o.breakindent = true
 
+-- Indentation settings
+vim.o.tabstop = 2        -- Number of spaces that a <Tab> in the file counts for
+vim.o.shiftwidth = 2     -- Number of spaces to use for each step of (auto)indent
+vim.o.softtabstop = 2    -- Number of spaces that a <Tab> counts for while editing
+vim.o.expandtab = true   -- Use spaces instead of tabs
+vim.o.smartindent = true -- Smart autoindenting when starting a new line
+
 -- Disable line wrapping
 vim.o.wrap = false
 
@@ -1023,6 +1030,34 @@ require('lazy').setup({
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
+
+  { -- Indentation guides
+    'lukas-reineke/indent-blankline.nvim',
+    main = 'ibl',
+    event = { 'BufReadPost', 'BufNewFile' },
+    opts = {
+      indent = {
+        char = '│', -- Character for indent guide
+        tab_char = '│',
+      },
+      scope = {
+        enabled = true,
+        show_start = false,
+        show_end = false,
+      },
+      exclude = {
+        filetypes = {
+          'help',
+          'alpha',
+          'dashboard',
+          'neo-tree',
+          'Trouble',
+          'lazy',
+          'mason',
+        },
+      },
+    },
+  },
 
   { -- Render markdown with treesitter
     'MeanderingProgrammer/render-markdown.nvim',
