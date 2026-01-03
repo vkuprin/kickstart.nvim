@@ -1213,6 +1213,7 @@ require('lazy').setup({
       popup_border_style = 'rounded',
       enable_git_status = true,
       enable_diagnostics = true,
+      default_component_configs = {
         indent = {
           indent_size = 2,
           padding = 1, -- extra padding on left hand side
